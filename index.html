@@ -1,0 +1,832 @@
+<html>
+<head>
+    <title>threejs - models</title>
+
+    <style>
+        body{
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+
+    <canvas id="myCanvas"></canvas>
+
+    <script src="three.js"></script>
+    <script src="three.min.js"></script>
+    <script src="GLTFLoader.js"></script>
+    <script src="UnpackDepthRGBAShader.js"></script>
+    <script src="ShadowMapViewer.js"></script>
+    <script src="OrbitControls.js"></script>
+    <script type="text/javascript" src="dat.gui.min.js"></script>
+
+    <script type="x-shader/x-vertex" id="vertexShader">
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+
+        void main() 
+        {
+            vUv = uv;
+            vNormal = normalMatrix * normal;
+            vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
+            vViewPosition = modelViewPosition.xyz;
+            gl_Position = projectionMatrix * modelViewPosition;
+        }
+    </script>
+
+    <script type="x-shader/x-fragment" id="CelShader">
+        uniform sampler2D textureD;
+        uniform vec3 colorD;
+        uniform vec3 lightPos;
+        uniform float lightIntensity;
+        uniform vec3 camPos;
+        varying vec2 vUv; 
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 l = normalize(lightPos - vViewPosition);
+            vec3 h = normalize(normalize(camPos - vViewPosition) + l);
+            float lambert = max(0.0, dot(l, normal));
+            float r2 = pow(length(lightPos - vViewPosition), 2.0);
+            float diffuse = (lightIntensity / r2) * lambert;
+            float ambient =  1.0;
+            float p = 32.0;
+            float specular = (lightIntensity / r2) * pow(max(0.0, dot(normal, h)), p);
+            float ka = 0.2;
+            float kd = 0.6;
+            float ks = 0.8;
+            float phong = ka * ambient + kd * diffuse + ks * specular;
+            float intensity = phong;
+            
+            vec3 colorLvl;
+            vec3 level1 = vec3(1.0, 0.9, 0.9); 
+            vec3 level2 = vec3(0.9, 0.8, 0.8); 
+            vec3 level3 = vec3(0.7, 0.5, 0.5); 
+            vec3 level4 = vec3(0.4, 0.2, 0.2); 
+
+            if (intensity > 0.95) {
+                colorLvl = level1;
+            } else if (intensity > 0.5) {
+                colorLvl = level2;
+            } else if (intensity > 0.25) {
+                colorLvl = level3;
+            } else {
+                colorLvl = level4;
+            }
+            vec4 texColor = texture2D(textureD, vUv);
+            if (texColor.x <= 0.1) {
+                gl_FragColor = vec4(colorLvl, 1);
+                if (colorLvl == level1) {
+                    gl_FragColor = vec4(colorD * colorLvl, 1);
+                }
+                else if (colorLvl == level2){
+                    gl_FragColor = vec4(colorD * level1, 1);
+                } else if (colorLvl == level3) {
+                    gl_FragColor = vec4(colorD * level2, 1);
+                } else {
+                    gl_FragColor = vec4(colorD * level3, 1);
+                }
+            } else {
+                gl_FragColor = vec4(colorD * colorLvl, 1);
+            }
+        }
+    </script>
+
+    <script type="x-shader/x-fragment" id="AquaShader">
+        uniform vec3 color1;
+        uniform vec3 color2;
+        uniform vec3 color3;
+        uniform vec3 lightPos;
+        uniform float lightIntensity;
+        uniform vec3 camPos;
+        varying vec2 vUv; 
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 l = normalize(lightPos - vViewPosition);
+            vec3 h = normalize(normalize(camPos - vViewPosition) + l);
+            float lambert = max(0.0, dot(l, normal));
+            float r2 = pow(length(lightPos - vViewPosition), 2.0);
+            float diffuse = (lightIntensity / r2) * lambert;
+            float ambient =  1.0;
+            float p = 32.0;
+            float specular = (lightIntensity / r2) * pow(max(0.0, dot(normal, h)), p);
+            float ka = 0.2;
+            float kd = 0.6;
+            float ks = 0.8;
+            float phong = ka * ambient + kd * diffuse + ks * specular;
+            float intensity = phong;
+
+            if (intensity > 0.8) {
+                gl_FragColor = vec4(color1, 1);
+            } else if (intensity > 0.6) {
+                gl_FragColor = vec4(color2, 1);
+            } else {
+            	 gl_FragColor = vec4(color3, 1);
+        	}
+        }
+    </script>
+
+    <script type="x-shader/x-fragment" id="SketchShader">
+        uniform sampler2D texture1;
+        uniform sampler2D texture2;
+        uniform sampler2D texture3;
+        uniform sampler2D texture4;
+        uniform vec3 lightPos;
+        uniform float lightIntensity;
+        uniform vec3 camPos;
+        varying vec2 vUv; 
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 l = normalize(lightPos - vViewPosition);
+            vec3 h = normalize(normalize(camPos - vViewPosition) + l);
+            float lambert = max(0.0, dot(l, normal));
+            float r2 = pow(length(lightPos - vViewPosition), 2.0);
+            float diffuse = (lightIntensity / r2) * lambert;
+            float ambient =  1.0;
+            float p = 32.0;
+            float specular = (lightIntensity / r2) * pow(max(0.0, dot(normal, h)), p);
+            float ka = 0.2;
+            float kd = 0.6;
+            float ks = 0.8;
+            float phong = ka * ambient + kd * diffuse + ks * specular;
+            float intensity = phong;
+
+            if (intensity > 0.95) {
+                gl_FragColor = texture2D(texture1, vUv);
+            } else if (intensity <= 0.95 && intensity >= 0.9) {
+                float lower = (0.95 - intensity) / 0.05;
+                float higher = (intensity - 0.9) / 0.05;
+                gl_FragColor = lower * texture2D(texture2, vUv) +  higher * texture2D(texture1, vUv);
+            } else if (intensity > 0.5) { //0.6-0.9
+                gl_FragColor = texture2D(texture2, vUv);
+            } else if (intensity <= 0.5 && intensity >= 0.45) { //blend b/w 0.5-0.6
+                float lower = (0.5 - intensity) / 0.05;
+                float higher = (intensity - 0.45) / 0.05;
+                gl_FragColor = lower * texture2D(texture3, vUv) +  higher * texture2D(texture2, vUv);
+            } else if (intensity > 0.25) { //0.3 to 0.5
+                gl_FragColor = texture2D(texture3, vUv);
+            } else if (intensity <= 0.25 && intensity >= 0.2) {
+                float lower = (0.25 - intensity) / 0.05;
+                float higher = (intensity - 0.2) / 0.05;
+                gl_FragColor = lower * texture2D(texture4, vUv) +  higher * texture2D(texture3, vUv);;
+            } else {
+                gl_FragColor = texture2D(texture4, vUv);
+            }
+            
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="TreeShader">
+        uniform sampler2D texture1;
+        uniform sampler2D texture2;
+        uniform sampler2D texture3;
+        uniform sampler2D texture4;
+        uniform vec3 lightPos;
+        uniform float lightIntensity;
+        uniform vec3 camPos;
+        varying vec2 vUv; 
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+           vec3 normal = normalize(vNormal);
+            vec3 l = normalize(lightPos - vViewPosition);
+            vec3 h = normalize(normalize(camPos - vViewPosition) + l);
+            float lambert = max(0.0, dot(l, normal));
+            float r2 = pow(length(lightPos - vViewPosition), 2.0);
+            float diffuse = (lightIntensity / r2) * lambert;
+            float ambient =  1.0;
+            float p = 32.0;
+            float specular = (lightIntensity / r2) * pow(max(0.0, dot(normal, h)), p);
+            float ka = 0.2;
+            float kd = 0.6;
+            float ks = 0.8;
+            float phong = ka * ambient + kd * diffuse + ks * specular;
+            float intensity = phong;
+
+            if (intensity > 0.95) {
+                gl_FragColor = texture2D(texture1, vUv);
+            } else if (intensity <= 0.95 && intensity >= 0.8) {
+                float lower = (0.95 - intensity) / 0.15;
+                float higher = (intensity - 0.8) / 0.15;
+                gl_FragColor = lower * texture2D(texture2, vUv) +  higher * texture2D(texture1, vUv);
+            } else if (intensity > 0.5) { //0.6-0.9
+                gl_FragColor = texture2D(texture2, vUv);
+            } else if (intensity <= 0.5 && intensity >= 0.4) { //blend b/w 0.5-0.6
+                float lower = (0.5 - intensity) / 0.1;
+                float higher = (intensity - 0.4) / 0.1;
+                gl_FragColor = lower * texture2D(texture3, vUv) +  higher * texture2D(texture2, vUv);
+            } else if (intensity > 0.3) { //0.3 to 0.5
+                gl_FragColor = texture2D(texture3, vUv);
+            } else if (intensity <= 0.3 && intensity >= 0.2) {
+                float lower = (0.3 - intensity) / 0.1;
+                float higher = (intensity - 0.2) / 0.1;
+                gl_FragColor = lower * texture2D(texture4, vUv) +  higher * texture2D(texture3, vUv);
+            } else {
+                gl_FragColor = texture2D(texture4, vUv);
+            }
+        }
+    </script>
+    <script type="x-shader/x-fragment" id="Leaf4Shader">
+        uniform sampler2D texture1;
+        uniform vec3 lightPos;
+        uniform float lightIntensity;
+        uniform vec3 camPos;
+        varying vec2 vUv; 
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+            gl_FragColor = texture2D(texture1, vUv);
+        }
+    </script>
+
+    <script type="x-shader/x-fragment" id="Leaf3Shader">
+        uniform sampler2D texture1;
+        uniform sampler2D texture2;
+        uniform vec3 lightPos;
+        uniform float lightIntensity;
+        uniform vec3 camPos;
+        varying vec2 vUv; 
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+         	vec3 normal = normalize(vNormal);
+            vec3 l = normalize(lightPos - vViewPosition);
+            vec3 h = normalize(normalize(camPos - vViewPosition) + l);
+            float lambert = max(0.0, dot(l, normal));
+            float r2 = pow(length(lightPos - vViewPosition), 2.0);
+            float diffuse = (lightIntensity / r2) * lambert;
+            float ambient =  1.0;
+            float p = 32.0;
+            float specular = (lightIntensity / r2) * pow(max(0.0, dot(normal, h)), p);
+            float ka = 0.2;
+            float kd = 0.6;
+            float ks = 0.8;
+            float phong = ka * ambient + kd * diffuse + ks * specular;
+            float intensity = phong;
+
+            if (intensity > 0.35) {
+            	gl_FragColor = texture2D(texture1, vUv);
+       		} 
+           
+        }
+    </script>
+
+    <script type="x-shader/x-fragment" id="Leaf2Shader">
+        uniform sampler2D texture1;
+        uniform sampler2D texture2;
+        uniform vec3 lightPos;
+        uniform float lightIntensity;
+        uniform vec3 camPos;
+        varying vec2 vUv; 
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+         	vec3 normal = normalize(vNormal);
+            vec3 l = normalize(lightPos - vViewPosition);
+            vec3 h = normalize(normalize(camPos - vViewPosition) + l);
+            float lambert = max(0.0, dot(l, normal));
+            float r2 = pow(length(lightPos - vViewPosition), 2.0);
+            float diffuse = (lightIntensity / r2) * lambert;
+            float ambient =  1.0;
+            float p = 32.0;
+            float specular = (lightIntensity / r2) * pow(max(0.0, dot(normal, h)), p);
+            float ka = 0.2;
+            float kd = 0.6;
+            float ks = 0.8;
+            float phong = ka * ambient + kd * diffuse + ks * specular;
+            float intensity = phong;
+
+            if (intensity > 0.75) {
+            	gl_FragColor = texture2D(texture1, vUv);
+       		} else if (intensity > 0.6) {
+       			float lower = (0.75 - intensity) / 0.15;
+                float higher = (intensity - 0.6) / 0.15;
+                gl_FragColor = lower * texture2D(texture2, vUv) +  higher * texture2D(texture1, vUv);
+       		}
+           
+        }
+    </script>
+
+    <script>
+
+
+    var renderer,
+        scene,
+        camera,
+        myCanvas = document.getElementById('myCanvas');
+
+    //RENDERER
+    renderer = new THREE.WebGLRenderer({
+      canvas: myCanvas, 
+      antialias: true
+    });
+    renderer.setClearColor(0x000000);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    //CAMERA
+    camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000 );
+    camera.position.z = 10;
+
+    //SCENE
+    scene = new THREE.Scene();
+
+    var gui = new dat.GUI();
+
+    var params = {};
+    params.color = 0xFF926F;
+    
+    var folder1 = gui.addFolder('Shaders');
+    var obj1 = { add:function(){ console.log("clicked") }};
+    var obj2 = { add:function(){ console.log("clicked") }};
+    var obj3 = { add:function(){ console.log("clicked") }};
+    var obj4 = { add:function(){ console.log("clicked") }};
+    var obj5 = { add:function(){ console.log("clicked") }};
+    var obj6 = { add:function(){ console.log("clicked") }};
+    folder1.addColor( params, 'color' )
+    	.name('Toon Color')
+    	.onChange( function() { 
+    		uniformsCel = {
+		        textureD: { type: "t", value: new THREE.TextureLoader().load('textures/dots.png') },
+		        colorD: { type: "c", value: new THREE.Color(params.color) },
+		        lightPos: { type: "vec3", value: lightP.position},
+                lightIntensity: { type: "float", value: lightP.intensity},
+                camPos: {type: "vec3", value: camera.position}
+		    }
+    		celMaterial = new THREE.ShaderMaterial({
+		        uniforms: uniformsCel,
+		        vertexShader: document.getElementById('vertexShader').textContent,
+		        fragmentShader: document.getElementById('CelShader').textContent
+		    });
+    		sphereBase.material = celMaterial;
+    		cylBase.material = celMaterial;
+    		//scene.add(sphere);
+    		if (cylOut.parent == scene) {
+            	scene.remove(cylOut);
+            }
+
+            if (sphereOut.parent == scene) {
+            	scene.remove(sphereOut);
+            }
+    		if (sphereL4.parent == scene) {
+            	scene.remove( sphereL4 );
+	            scene.remove( sphereL3 );
+	            scene.remove( sphereL2 );
+	            scene.remove( sphereL1 );
+            }
+            if (cylL4.parent == scene) {
+            	scene.remove( cylL4 );
+	            scene.remove( cylL3 );
+	            scene.remove( cylL2 );
+	            scene.remove( cylL1 );
+            }
+    	});
+    folder1.add( obj1, 'add')
+        .name('Dots')
+        .onChange(function() {
+            uniformsCel = {
+		        textureD: { type: "t", value: new THREE.TextureLoader().load('textures/dots.png') },
+                colorD: { type: "c", value: new THREE.Color(params.color) },
+                lightPos: { type: "vec3", value: lightP.position},
+                lightIntensity: { type: "float", value: lightP.intensity},
+                camPos: {type: "vec3", value: camera.position}
+		    }
+    		celMaterial = new THREE.ShaderMaterial({
+		        uniforms: uniformsCel,
+		        vertexShader: document.getElementById('vertexShader').textContent,
+		        fragmentShader: document.getElementById('CelShader').textContent
+		    });
+    		sphereBase.material = celMaterial;
+    		cylBase.material = celMaterial;
+    		//scene.add(sphere);
+    		if (cylOut.parent == scene) {
+            	scene.remove(cylOut);
+            }
+
+            if (sphereOut.parent == scene) {
+            	scene.remove(sphereOut);
+            }
+            if (sphereL4.parent == scene) {
+            	scene.remove( sphereL4 );
+	            scene.remove( sphereL3 );
+	            scene.remove( sphereL2 );
+	            scene.remove( sphereL1 );
+            }
+            if (cylL4.parent == scene) {
+            	scene.remove( cylL4 );
+	            scene.remove( cylL3 );
+	            scene.remove( cylL2 );
+	            scene.remove( cylL1 );
+            }
+
+        });
+    folder1.add( obj2, 'add')
+        .name('Aqua')
+        .onChange(function() {
+            sphereBase.material = aquaMaterial;
+            cylBase.material = aquaMaterial;
+            //scene.add(sphere);
+            if (cylBase.parent == scene) {
+            	scene.add(cylOut);
+            }
+
+            if (sphereBase.parent == scene) {
+            	scene.add(sphereOut);
+            }
+
+            if (sphereL4.parent == scene) {
+            	scene.remove( sphereL4 );
+	            scene.remove( sphereL3 );
+	            scene.remove( sphereL2 );
+	            scene.remove( sphereL1 );
+            }
+            if (cylL4.parent == scene) {
+            	scene.remove( cylL4 );
+	            scene.remove( cylL3 );
+	            scene.remove( cylL2 );
+	            scene.remove( cylL1 );
+            }
+
+        });
+    folder1.add( obj3, 'add')
+        .name('Sketchy')
+        .onChange(function() {
+            sphereBase.material = sketchMaterial;
+            cylBase.material = sketchMaterial;
+            //scene.add(sphere);
+            if (sphereL4.parent == scene) {
+            	scene.remove( sphereL4 );
+	            scene.remove( sphereL3 );
+	            scene.remove( sphereL2 );
+	            scene.remove( sphereL1 );
+            }
+            if (cylL4.parent == scene) {
+            	scene.remove( cylL4 );
+	            scene.remove( cylL3 );
+	            scene.remove( cylL2 );
+	            scene.remove( cylL1 );
+            }
+            if (cylBase.parent == scene) {
+            	scene.remove(cylOut);
+            }
+
+            if (sphereBase.parent == scene) {
+            	scene.remove(sphereOut);
+            }
+
+        });
+
+    folder1.add( obj4, 'add')
+        .name('Circles')
+        .onChange(function() {
+            sphereBase.material = circlesMaterial;
+            cylBase.material = circlesMaterial;
+            //scene.add(sphere);
+            if (sphereL4.parent == scene) {
+            	scene.remove( sphereL4 );
+	            scene.remove( sphereL3 );
+	            scene.remove( sphereL2 );
+	            scene.remove( sphereL1 );
+            }
+            if (cylL4.parent == scene) {
+            	scene.remove( cylL4 );
+	            scene.remove( cylL3 );
+	            scene.remove( cylL2 );
+	            scene.remove( cylL1 );
+            }
+            if (cylBase.parent == scene) {
+            	scene.remove(cylOut);
+            }
+
+            if (sphereBase.parent == scene) {
+            	scene.remove(sphereOut);
+            }
+
+        });
+    folder1.add( obj5, 'add')
+        .name('Tree')
+        .onChange(function() {
+            sphereBase.material = treeMaterial;
+          	cylBase.material = treeMaterial;
+          	if (sphereBase.parent == scene) {
+            	scene.add( sphereL4 );
+	            scene.add( sphereL3 );
+	            scene.add( sphereL2 );
+	            scene.add( sphereL1 );
+            } else {
+            	scene.add( cylL4 );
+	            scene.add( cylL3 );
+	            scene.add( cylL2 );
+	            scene.add( cylL1 );
+            }
+            if (cylBase.parent == scene) {
+            	scene.remove(cylOut);
+            }
+
+            if (sphereBase.parent == scene) {
+            	scene.remove(sphereOut);
+            }
+
+        });
+    folder1.add( obj6, 'add')
+        .name('Change Model')
+        .onChange(function() {
+            //scene.remove( sphere);
+            if (cylBase.parent == scene) {
+                sphereBase.material = cylBase.material;
+                scene.add(sphereBase);
+                scene.remove(cylBase);
+                if (cylL4.parent == scene) {
+                    scene.remove( cylL4 );
+                    scene.remove( cylL3 );
+                    scene.remove( cylL2 );
+                    scene.remove( cylL1 );
+
+                    scene.add( sphereL4 );
+                    scene.add( sphereL3 );
+                    scene.add( sphereL2 );
+                    scene.add( sphereL1 );
+                }
+                if (sphereBase.material == aquaMaterial) {
+                    scene.remove(cylOut);
+                    scene.add(sphereOut);
+                }
+
+            } else {
+                cylBase.material = sphereBase.material;
+                scene.add(cylBase);
+                scene.remove(sphereBase);
+                if (sphereL4.parent == scene) {
+                    scene.remove( sphereL4 );
+                    scene.remove( sphereL3 );
+                    scene.remove( sphereL2 );
+                    scene.remove( sphereL1 );
+
+                    scene.add( cylL4 );
+                    scene.add( cylL3 );
+                    scene.add( cylL2 );
+                    scene.add( cylL1 );
+                }
+                if (cylBase.material == aquaMaterial) {
+                    scene.remove(sphereOut);
+                    scene.add(cylOut);
+                }
+            }  
+            
+        });
+    
+    folder1.open();
+    
+
+
+
+    //LIGHTS
+    var lightP = new THREE.DirectionalLight(0xffffff, 0.5);
+    lightP.intensity = 80.0;
+    lightP.position.y = 3.5;
+    lightP.position.z = -2.5;
+    lightP.target.position = (0,0,0);
+    scene.add(lightP);
+    scene.add(lightP.target);
+
+
+    //Custom Shader Material
+    var uniformsCel;
+    var celMaterial;
+
+    var uniformsAqua = {
+        color1: { type: "vec3", value: new THREE.Color(0xE8FEF1) },
+        color2: { type: "vec3", value: new THREE.Color(0x72E5D8) },
+        color3: { type: "vec3", value: new THREE.Color(0x1CDCD2) },
+        lightPos: { type: "vec3", value: lightP.position},
+        lightIntensity: { type: "float", value: lightP.intensity},
+        camPos: {type: "vec3", value: camera.position}
+    }
+
+    var aquaMaterial = new THREE.ShaderMaterial({
+        uniforms: uniformsAqua,
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('AquaShader').textContent
+    });
+
+    var uniformsSketch = {
+        texture1: { type: "t", value: new THREE.TextureLoader().load('textures/lvl1.png') },
+        texture2: { type: "t", value: new THREE.TextureLoader().load('textures/lvl2.png') },
+        texture3: { type: "t", value: new THREE.TextureLoader().load('textures/lvl3.png') },
+        texture4: { type: "t", value: new THREE.TextureLoader().load('textures/lvl4.png') },
+        lightPos: { type: "vec3", value: lightP.position},
+        lightIntensity: { type: "float", value: lightP.intensity},
+        camPos: {type: "vec3", value: camera.position}
+    }
+
+    var sketchMaterial = new THREE.ShaderMaterial({
+        uniforms: uniformsSketch,
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('SketchShader').textContent
+    });
+
+    var uniformsCircles = {
+        texture1: { type: "t", value: new THREE.TextureLoader().load('textures/circ1.png') },
+        texture2: { type: "t", value: new THREE.TextureLoader().load('textures/circ2.png') },
+        texture3: { type: "t", value: new THREE.TextureLoader().load('textures/circ3.png') },
+        texture4: { type: "t", value: new THREE.TextureLoader().load('textures/circ4.png') },
+        lightPos: { type: "vec3", value: lightP.position},
+        lightIntensity: { type: "float", value: lightP.intensity},
+        camPos: {type: "vec3", value: camera.position}
+    }
+
+    var circlesMaterial = new THREE.ShaderMaterial({
+        uniforms: uniformsCircles,
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('SketchShader').textContent
+    });
+
+    var uniformsTree = {
+        texture1: { type: "t", value: new THREE.TextureLoader().load('textures/tree1.png') },
+        texture2: { type: "t", value: new THREE.TextureLoader().load('textures/tree2.png') },
+        texture3: { type: "t", value: new THREE.TextureLoader().load('textures/tree3.png') },
+        texture4: { type: "t", value: new THREE.TextureLoader().load('textures/tree4.png') },
+        lightPos: { type: "vec3", value: lightP.position},
+        lightIntensity: { type: "float", value: lightP.intensity},
+        camPos: {type: "vec3", value: camera.position}
+    }
+
+    var treeMaterial = new THREE.ShaderMaterial({
+        uniforms: uniformsTree,
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('TreeShader').textContent
+    });
+
+    var uniformsLeaf4 = {
+        texture1: { type: "t", value: new THREE.TextureLoader().load('textures/tree4Leaf.png') },
+        lightPos: { type: "vec3", value: lightP.position},
+        lightIntensity: { type: "float", value: lightP.intensity},
+        camPos: {type: "vec3", value: camera.position}
+    }
+
+    var leaf4Material = new THREE.ShaderMaterial({
+        uniforms: uniformsLeaf4,
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('Leaf4Shader').textContent
+    });
+    leaf4Material.transparent = true;
+
+    var uniformsLeaf3 = {
+        texture1: { type: "t", value: new THREE.TextureLoader().load('textures/tree3Leaf.png') },
+        texture2: { type: "t", value: new THREE.TextureLoader().load('textures/tree4.png') },
+        lightPos: { type: "vec3", value: lightP.position},
+        lightIntensity: { type: "float", value: lightP.intensity},
+        camPos: {type: "vec3", value: camera.position}
+    }
+
+    var leaf3Material = new THREE.ShaderMaterial({
+        uniforms: uniformsLeaf3,
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('Leaf3Shader').textContent
+    });
+    leaf3Material.transparent = true;
+
+    var uniformsLeaf2 = {
+        texture1: { type: "t", value: new THREE.TextureLoader().load('textures/tree2Leaf.png') },
+        texture2: { type: "t", value: new THREE.TextureLoader().load('textures/tree3Leaf.png') },
+        lightPos: { type: "vec3", value: lightP.position},
+        lightIntensity: { type: "float", value: lightP.intensity},
+        camPos: {type: "vec3", value: camera.position}
+    }
+
+    var leaf2Material = new THREE.ShaderMaterial({
+        uniforms: uniformsLeaf2,
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('Leaf2Shader').textContent
+    });
+    leaf2Material.transparent = true;
+
+    /*var loader = new THREE.GLTFLoader();
+    loader.load('Avocado.glb', handle_load);
+    var mesh;
+
+    function handle_load(gltf) {
+
+        console.log(gltf);
+        mesh = gltf.scene;
+        mesh.traverse((o) => {
+        if (o.isMesh) o.material = celMaterial;
+        });
+        console.log(mesh.children[0]);
+        mesh.children[0].material = celMaterial;
+        scene.add( mesh );
+        mesh.position.x = 0;
+        mesh.position.y = -.03;
+        mesh.position.z = 9.8;
+    }*/
+
+
+    //GEOMETRY
+    //var geometryC1 = new THREE.CylinderGeometry( 1, 1, 2, 12 );
+    const radius =  1.5;  
+
+	const tubeRadius =  0.5;  
+
+	const radialSegments = 23;  
+
+	const tubularSegments =  37;  
+
+	var geometryC1 = new THREE.TorusBufferGeometry(radius, tubeRadius, radialSegments, tubularSegments);
+	var cylBase = new THREE.Mesh( geometryC1, aquaMaterial);
+	cylBase.rotateX(Math.PI/4.0);
+
+	var geometryCOut = new THREE.TorusBufferGeometry(radius + .05, tubeRadius + .05, radialSegments, tubularSegments);
+	var geometrySOut = new THREE.SphereGeometry( 1.7, 32, 32 );
+	var outMaterial = new THREE.MeshBasicMaterial({color: 0x18c6bd});
+    var cylOut = new THREE.Mesh(geometryCOut, outMaterial);
+    var sphereOut = new THREE.Mesh(geometrySOut, outMaterial);
+    cylOut.position.z = -.21;
+    sphereOut.position.z = -.62;
+    cylOut.rotateX(Math.PI/4.0);
+    //scene.add(cylOut);
+
+
+
+
+    var geometryS1 = new THREE.SphereGeometry( 1.5, 32, 32 );
+    var sphereBase = new THREE.Mesh( geometryS1, celMaterial);
+    scene.add(sphereBase);
+
+    var geometryS2 = new THREE.SphereGeometry( 1.51, 32, 32 );
+    var sphereL4 = new THREE.Mesh(geometryS2, leaf4Material);
+    var geometryC2 = new THREE.TorusBufferGeometry(radius, tubeRadius + .02, radialSegments, tubularSegments);
+    var cylL4 = new THREE.Mesh(geometryC2, leaf4Material);
+    cylL4.rotateX(Math.PI/4.0);
+
+    var geometryS3 = new THREE.SphereGeometry( 1.53, 32, 32 );
+    var sphereL3 = new THREE.Mesh(geometryS3, leaf3Material);
+    var geometryC3 = new THREE.TorusBufferGeometry(radius, tubeRadius + .03, radialSegments, tubularSegments);
+    var cylL3 = new THREE.Mesh(geometryC3, leaf3Material);
+    cylL3.rotateX(Math.PI/4.0);
+
+    var geometryS4 = new THREE.SphereGeometry( 1.55, 32, 32 );
+    var sphereL2 = new THREE.Mesh(geometryS4, leaf2Material);
+    var geometryC4 = new THREE.TorusBufferGeometry(radius, tubeRadius + .05, radialSegments, tubularSegments);
+    var cylL2 = new THREE.Mesh(geometryC4, leaf2Material);
+    cylL2.rotateX(Math.PI/4.0);
+
+    var geometryS5 = new THREE.SphereGeometry( 1.56, 32, 32 );
+    var texture5 = new THREE.TextureLoader().load('textures/treeLeaf.png')
+    var material5 = new THREE.MeshBasicMaterial({map: texture5});
+    material5.transparent = true;
+    var sphereL1 = new THREE.Mesh(geometryS5, material5 );
+    var geometryC5 = new THREE.TorusBufferGeometry(radius, tubeRadius + .06, radialSegments, tubularSegments);
+    var cylL1 = new THREE.Mesh(geometryC5, material5);
+    cylL1.rotateX(Math.PI/4.0);
+
+
+
+
+
+
+    //RENDER LOOP
+    render();
+
+    var delta = 0;
+    var prevTime = Date.now();
+
+    function render() {
+
+        delta += 0.1;
+
+       /*if (mesh) {
+        
+            mesh.rotation.y += 0.01;
+
+            //animation mesh
+            // mesh.morphTargetInfluences[ 0 ] = Math.sin(delta) * 20.0;
+        }*/
+
+        cylBase.rotation.y += 0.005
+
+        sphereBase.rotation.y += 0.005
+        sphereL4.rotation.y += 0.005
+        sphereL3.rotation.y += 0.005
+        sphereL2.rotation.y += 0.005
+        sphereL1.rotation.y += 0.005
+        cylL4.rotation.y += 0.005
+        cylL3.rotation.y += 0.005
+        cylL2.rotation.y += 0.005
+        cylL1.rotation.y += 0.005
+        cylOut.rotation.y += 0.005
+
+        renderer.render(scene, camera);
+
+        requestAnimationFrame(render);
+    }
+
+    </script>
+</body>
+</html>
